@@ -413,7 +413,50 @@ export class XApiClient {
       },
       "application/x-www-form-urlencoded",
     );
-    const finalizeResult = await this.handleResponse(finalizeRes, "uploadMedia:FINALIZE");
+    const finalizeResult = await this.handleResponse<{
+      media_id_string: string;
+      processing_info?: {
+        state: "pending" | "in_progress" | "succeeded" | "failed";
+        check_after_secs?: number;
+        progress_percent?: number;
+        error?: { name: string; message: string };
+      };
+    }>(finalizeRes, "uploadMedia:FINALIZE");
+
+    // Poll STATUS for async processing (video, animated GIF).
+    // Images return without processing_info and skip this loop.
+    let processingInfo = finalizeResult.result.processing_info;
+    const maxWaitMs = 120_000;
+    const startedAt = Date.now();
+    while (
+      processingInfo &&
+      (processingInfo.state === "pending" || processingInfo.state === "in_progress")
+    ) {
+      if (Date.now() - startedAt > maxWaitMs) {
+        throw new Error(`uploadMedia:STATUS timed out after ${maxWaitMs}ms (media_id=${mediaId})`);
+      }
+      const waitSecs = processingInfo.check_after_secs ?? 1;
+      await new Promise((r) => setTimeout(r, waitSecs * 1000));
+
+      const statusUrl = `${uploadUrl}?command=STATUS&media_id=${mediaId}`;
+      const statusRes = await this.oauthFetch(statusUrl, "GET");
+      const statusData = await this.handleResponse<{
+        processing_info?: {
+          state: "pending" | "in_progress" | "succeeded" | "failed";
+          check_after_secs?: number;
+          progress_percent?: number;
+          error?: { name: string; message: string };
+        };
+      }>(statusRes, "uploadMedia:STATUS");
+      processingInfo = statusData.result.processing_info;
+    }
+
+    if (processingInfo?.state === "failed") {
+      const err = processingInfo.error;
+      throw new Error(
+        `uploadMedia:STATUS processing failed (media_id=${mediaId}): ${err?.name ?? "unknown"} — ${err?.message ?? "no message"}`,
+      );
+    }
 
     return { mediaId, ...finalizeResult };
   }

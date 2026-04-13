@@ -10,7 +10,19 @@ const TOKEN_FILE = path.resolve(__dirname, "..", ".oauth2-tokens.json");
 const AUTH_URL = "https://twitter.com/i/oauth2/authorize";
 const TOKEN_URL = "https://api.twitter.com/2/oauth2/token";
 const REDIRECT_URI = "http://127.0.0.1:3219/callback";
-const SCOPES = "bookmark.read bookmark.write tweet.read users.read offline.access";
+const SCOPES = [
+  "tweet.read",
+  "tweet.write",
+  "users.read",
+  "follows.read",
+  "follows.write",
+  "like.read",
+  "like.write",
+  "bookmark.read",
+  "bookmark.write",
+  "media.write",
+  "offline.access",
+].join(" ");
 
 interface OAuth2Tokens {
   access_token: string;
