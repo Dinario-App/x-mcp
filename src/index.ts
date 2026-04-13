@@ -7,6 +7,8 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { z } from "zod";
 import { XApiClient } from "./x-api.js";
+import { XdkAdapter } from "./xdk-adapter.js";
+import { shouldUseXdk, xdkEnabledTools } from "./flags.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dirname, "..", ".env") });
@@ -28,6 +30,13 @@ const client = new XApiClient({
   oauth2ClientId: process.env.X_OAUTH2_CLIENT_ID,
   oauth2ClientSecret: process.env.X_OAUTH2_CLIENT_SECRET,
 });
+
+const xdk = new XdkAdapter({ bearerToken: requireEnv("X_BEARER_TOKEN") });
+
+const xdkTools = xdkEnabledTools();
+if (xdkTools.length > 0) {
+  console.error(`[x-mcp] XDK enabled for tools: ${xdkTools.join(", ")}`);
+}
 
 const server = new McpServer({
   name: "x-mcp",
@@ -151,7 +160,9 @@ server.tool(
   async ({ tweet_id }) => {
     try {
       const id = parseTweetId(tweet_id);
-      const { result, rateLimit } = await client.getTweet(id);
+      const { result, rateLimit } = shouldUseXdk("get_tweet")
+        ? await xdk.getTweet(id)
+        : await client.getTweet(id);
       return { content: [{ type: "text", text: formatResult(result, rateLimit) }] };
     } catch (e: unknown) {
       return { content: [{ type: "text", text: `Error: ${(e as Error).message}` }], isError: true };
@@ -173,7 +184,9 @@ server.tool(
   },
   async ({ query, max_results, next_token }) => {
     try {
-      const { result, rateLimit } = await client.searchTweets(query, max_results, next_token);
+      const { result, rateLimit } = shouldUseXdk("search_tweets")
+        ? await xdk.searchTweets(query, max_results, next_token)
+        : await client.searchTweets(query, max_results, next_token);
       return { content: [{ type: "text", text: formatResult(result, rateLimit) }] };
     } catch (e: unknown) {
       return { content: [{ type: "text", text: `Error: ${(e as Error).message}` }], isError: true };
@@ -197,7 +210,9 @@ server.tool(
       if (!username && !user_id) {
         return { content: [{ type: "text", text: "Error: Provide either username or user_id" }], isError: true };
       }
-      const { result, rateLimit } = await client.getUser({ username, userId: user_id });
+      const { result, rateLimit } = shouldUseXdk("get_user")
+        ? await xdk.getUser({ username, userId: user_id })
+        : await client.getUser({ username, userId: user_id });
       return { content: [{ type: "text", text: formatResult(result, rateLimit) }] };
     } catch (e: unknown) {
       return { content: [{ type: "text", text: `Error: ${(e as Error).message}` }], isError: true };
@@ -215,7 +230,9 @@ server.tool(
   },
   async ({ user_id, max_results, next_token }) => {
     try {
-      const { result, rateLimit } = await client.getTimeline(user_id, max_results, next_token);
+      const { result, rateLimit } = shouldUseXdk("get_timeline")
+        ? await xdk.getTimeline(user_id, max_results, next_token)
+        : await client.getTimeline(user_id, max_results, next_token);
       return { content: [{ type: "text", text: formatResult(result, rateLimit) }] };
     } catch (e: unknown) {
       return { content: [{ type: "text", text: `Error: ${(e as Error).message}` }], isError: true };
@@ -250,7 +267,9 @@ server.tool(
   },
   async ({ user_id, max_results, next_token }) => {
     try {
-      const { result, rateLimit } = await client.getFollowers(user_id, max_results, next_token);
+      const { result, rateLimit } = shouldUseXdk("get_followers")
+        ? await xdk.getFollowers(user_id, max_results, next_token)
+        : await client.getFollowers(user_id, max_results, next_token);
       return { content: [{ type: "text", text: formatResult(result, rateLimit) }] };
     } catch (e: unknown) {
       return { content: [{ type: "text", text: `Error: ${(e as Error).message}` }], isError: true };
@@ -268,7 +287,9 @@ server.tool(
   },
   async ({ user_id, max_results, next_token }) => {
     try {
-      const { result, rateLimit } = await client.getFollowing(user_id, max_results, next_token);
+      const { result, rateLimit } = shouldUseXdk("get_following")
+        ? await xdk.getFollowing(user_id, max_results, next_token)
+        : await client.getFollowing(user_id, max_results, next_token);
       return { content: [{ type: "text", text: formatResult(result, rateLimit) }] };
     } catch (e: unknown) {
       return { content: [{ type: "text", text: `Error: ${(e as Error).message}` }], isError: true };
