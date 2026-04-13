@@ -1,3 +1,5 @@
+import { ApiError } from "@xdevplatform/xdk";
+
 interface RateLimitInfo {
   limit: number;
   remaining: number;
@@ -8,7 +10,7 @@ interface XApiErrorBody {
   errors?: Array<{ message: string; title?: string; detail?: string; type?: string }>;
 }
 
-interface XdkApiError {
+interface DuckTypedApiError {
   name: string;
   message: string;
   status?: number;
@@ -22,30 +24,54 @@ function headersFrom(h: Headers | Record<string, string> | undefined): Headers {
   return new Headers(h as Record<string, string>);
 }
 
+function isXdkApiError(err: unknown): err is {
+  name: string;
+  message: string;
+  status: number;
+  headers: Headers;
+  data?: unknown;
+} {
+  if (err instanceof ApiError) return true;
+  // Duck-type fallback: defence-in-depth if XDK regenerates and renames the class.
+  // Per Technical Director: `instanceof` first, duck-type second, never silent pass-through.
+  const d = err as DuckTypedApiError | null;
+  return (
+    !!d &&
+    typeof d === "object" &&
+    d.name === "ApiError" &&
+    typeof d.status === "number" &&
+    d.headers !== undefined
+  );
+}
+
 /**
  * XDK throws its own ApiError on non-2xx responses BEFORE honoring
  * `requestOptions.raw`, so our shared handleResponse never sees the
  * Response. This helper reshapes that ApiError back into the legacy
  * `${operation} failed (HTTP N): detail. Rate limit: ...` format so
  * MCP callers see identical error messages whether the flag is on or off.
+ *
+ * Detection order (per TD re-sign-off):
+ *   1. `instanceof ApiError` — authoritative, compile-time-verified
+ *   2. Duck-type fallback on name/status/headers — survives SDK regen
+ *   3. Non-ApiError throws pass through unchanged
  */
 export function wrapXdkError(err: unknown, operation: string): Error {
-  const e = err as XdkApiError;
-  if (!e || typeof e !== "object" || e.name !== "ApiError") {
+  if (!isXdkApiError(err)) {
     return err instanceof Error ? err : new Error(String(err));
   }
-  const headers = headersFrom(e.headers);
+  const headers = headersFrom(err.headers);
   const rl = parseRateLimit(headers);
   const rateLimitStr = rl ? formatRateLimit(rl) : "";
-  const status = e.status ?? 0;
+  const status = err.status;
 
   if (status === 429) {
     const resetTime = rl ? new Date(rl.reset * 1000).toISOString() : "unknown";
     return new Error(`Rate limited on ${operation}. Reset at: ${resetTime}. ${rateLimitStr}`);
   }
 
-  const body = e.data as XApiErrorBody | undefined;
-  const detail = body?.errors?.map((x) => x.detail || x.message).join("; ") || e.message;
+  const body = err.data as XApiErrorBody | undefined;
+  const detail = body?.errors?.map((x) => x.detail || x.message).join("; ") || err.message;
   return new Error(`${operation} failed (HTTP ${status}): ${detail}. ${rateLimitStr}`);
 }
 
