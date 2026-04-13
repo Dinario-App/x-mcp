@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import OAuth from "oauth-1.0a";
 import { OAuth2Manager } from "./oauth2.js";
+import { applyAgentDisclosure } from "./disclosure.js";
 
 const API_BASE = "https://api.x.com/2";
 const UPLOAD_BASE = "https://upload.twitter.com/1.1";
@@ -200,12 +201,7 @@ export class XApiClient {
     poll_duration_minutes?: number;
     media_ids?: string[];
   }) {
-    // Auto-append agent disclosure to all outgoing tweets
-    const model = process.env.CLAUDE_MODEL || "Claude Opus 4.6";
-    const disclosure = `\n\n[${model} on behalf of @elliotarledge]`;
-    const text = params.text.includes("on behalf of @elliotarledge")
-      ? params.text  // avoid double-appending
-      : params.text + disclosure;
+    const text = applyAgentDisclosure(params.text);
     const body: Record<string, unknown> = { text };
 
     if (params.reply_to) {

@@ -1,0 +1,35 @@
+{
+  "_meta": {
+    "endpoint": "GET /2/users/by/username/{username}",
+    "capturedAt": "2026-04-12T00:00:00.000Z",
+    "note": "Hand-crafted fixture. Regenerate via scripts/capture-fixtures.ts with X_BEARER_TOKEN set.",
+    "args": { "username": "XDevelopers" }
+  },
+  "status": 200,
+  "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "x-rate-limit-limit": "300",
+    "x-rate-limit-remaining": "298",
+    "x-rate-limit-reset": "1775433600"
+  },
+  "body": {
+    "data": {
+      "id": "2244994945",
+      "name": "X Dev",
+      "username": "XDevelopers",
+      "verified": true,
+      "profile_image_url": "https://pbs.twimg.com/profile_images/example.jpg",
+      "created_at": "2013-12-14T04:35:55.000Z",
+      "description": "The voice of X Dev.",
+      "url": "https://developer.x.com",
+      "location": "127.0.0.1",
+      "pinned_tweet_id": "1111111111111111111",
+      "public_metrics": {
+        "followers_count": 500000,
+        "following_count": 10,
+        "tweet_count": 3500,
+        "listed_count": 1200
+      }
+    }
+  }
+}

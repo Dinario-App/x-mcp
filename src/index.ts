@@ -230,9 +230,7 @@ server.tool(
   },
   async ({ user_id, max_results, next_token }) => {
     try {
-      const { result, rateLimit } = shouldUseXdk("get_timeline")
-        ? await xdk.getTimeline(user_id, max_results, next_token)
-        : await client.getTimeline(user_id, max_results, next_token);
+      const { result, rateLimit } = await client.getTimeline(user_id, max_results, next_token);
       return { content: [{ type: "text", text: formatResult(result, rateLimit) }] };
     } catch (e: unknown) {
       return { content: [{ type: "text", text: `Error: ${(e as Error).message}` }], isError: true };

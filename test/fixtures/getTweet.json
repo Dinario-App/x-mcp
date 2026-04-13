@@ -1,0 +1,53 @@
+{
+  "_meta": {
+    "endpoint": "GET /2/tweets/{id}",
+    "capturedAt": "2026-04-12T00:00:00.000Z",
+    "note": "Hand-crafted fixture matching X API v2 schema (no real token used — scrubbed shape). Regenerate with scripts/capture-fixtures.ts when X_BEARER_TOKEN is set.",
+    "args": { "tweetId": "1234567890123456789" }
+  },
+  "status": 200,
+  "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "x-rate-limit-limit": "300",
+    "x-rate-limit-remaining": "299",
+    "x-rate-limit-reset": "1775433600"
+  },
+  "body": {
+    "data": {
+      "id": "1234567890123456789",
+      "text": "Hello world from the X API v2 fixture.",
+      "author_id": "2244994945",
+      "conversation_id": "1234567890123456789",
+      "created_at": "2026-04-01T12:34:56.000Z",
+      "lang": "en",
+      "public_metrics": {
+        "retweet_count": 3,
+        "reply_count": 1,
+        "like_count": 42,
+        "quote_count": 0,
+        "bookmark_count": 5,
+        "impression_count": 1200
+      },
+      "entities": {
+        "hashtags": [{ "start": 0, "end": 6, "tag": "hello" }]
+      }
+    },
+    "includes": {
+      "users": [
+        {
+          "id": "2244994945",
+          "name": "X Dev",
+          "username": "XDevelopers",
+          "verified": true,
+          "profile_image_url": "https://pbs.twimg.com/profile_images/example.jpg",
+          "public_metrics": {
+            "followers_count": 500000,
+            "following_count": 10,
+            "tweet_count": 3500,
+            "listed_count": 1200
+          }
+        }
+      ]
+    }
+  }
+}

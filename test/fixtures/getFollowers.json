@@ -1,0 +1,52 @@
+{
+  "_meta": {
+    "endpoint": "GET /2/users/{id}/followers",
+    "capturedAt": "2026-04-12T00:00:00.000Z",
+    "args": { "userId": "2244994945", "maxResults": 100 }
+  },
+  "status": 200,
+  "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "x-rate-limit-limit": "15",
+    "x-rate-limit-remaining": "14",
+    "x-rate-limit-reset": "1775433600"
+  },
+  "body": {
+    "data": [
+      {
+        "id": "3001",
+        "name": "Follower One",
+        "username": "follower_one",
+        "verified": false,
+        "created_at": "2020-01-01T00:00:00.000Z",
+        "description": "A follower",
+        "profile_image_url": "https://example.com/f1.jpg",
+        "public_metrics": {
+          "followers_count": 10,
+          "following_count": 20,
+          "tweet_count": 100,
+          "listed_count": 0
+        }
+      },
+      {
+        "id": "3002",
+        "name": "Follower Two",
+        "username": "follower_two",
+        "verified": false,
+        "created_at": "2019-06-01T00:00:00.000Z",
+        "description": "",
+        "profile_image_url": "https://example.com/f2.jpg",
+        "public_metrics": {
+          "followers_count": 5,
+          "following_count": 50,
+          "tweet_count": 200,
+          "listed_count": 0
+        }
+      }
+    ],
+    "meta": {
+      "result_count": 2,
+      "next_token": "DFEDBNRFT3BHBFFDFDJDJDGHHG"
+    }
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "_meta": {
+    "endpoint": "GET /2/users/{id}/tweets (legacy) OR /2/users/{id}/timelines/reverse_chronological (XDK)",
+    "capturedAt": "2026-04-12T00:00:00.000Z",
+    "args": { "userId": "2244994945", "maxResults": 10 },
+    "divergence": "XDK posts.getTimeline hits a different endpoint than legacy — see DIVERGENCES.md"
+  },
+  "status": 200,
+  "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "x-rate-limit-limit": "900",
+    "x-rate-limit-remaining": "899",
+    "x-rate-limit-reset": "1775433600"
+  },
+  "body": {
+    "data": [
+      {
+        "id": "1500000000000000001",
+        "text": "Timeline tweet 1",
+        "author_id": "2244994945",
+        "conversation_id": "1500000000000000001",
+        "created_at": "2026-04-11T10:00:00.000Z",
+        "lang": "en",
+        "public_metrics": {
+          "retweet_count": 0,
+          "reply_count": 0,
+          "like_count": 3,
+          "quote_count": 0,
+          "bookmark_count": 0,
+          "impression_count": 200
+        }
+      }
+    ],
+    "includes": {
+      "users": [
+        { "id": "2244994945", "name": "X Dev", "username": "XDevelopers", "verified": true }
+      ]
+    },
+    "meta": {
+      "result_count": 1,
+      "newest_id": "1500000000000000001",
+      "oldest_id": "1500000000000000001",
+      "next_token": "7140dibdnow9c7btw3z2fv97zzfh9rr8xlb9nj1yotp5k"
+    }
+  }
+}

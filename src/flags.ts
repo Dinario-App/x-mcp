@@ -1,8 +1,11 @@
+// get_timeline intentionally excluded from PR 1: XDK's users.getTimeline
+// hits /timelines/reverse_chronological (home feed, OAuth 2.0 user token
+// required) while legacy hits /users/{id}/tweets (user posts, Bearer OK).
+// Revisit in PR 2 when OAuth 2.0 user-context auth lands. See DIVERGENCES.md #1.
 const PR1_TOOLS = new Set([
   "get_tweet",
   "get_user",
   "search_tweets",
-  "get_timeline",
   "get_followers",
   "get_following",
 ]);

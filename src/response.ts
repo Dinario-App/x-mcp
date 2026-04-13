@@ -8,6 +8,47 @@ interface XApiErrorBody {
   errors?: Array<{ message: string; title?: string; detail?: string; type?: string }>;
 }
 
+interface XdkApiError {
+  name: string;
+  message: string;
+  status?: number;
+  headers?: Headers | Record<string, string>;
+  data?: unknown;
+}
+
+function headersFrom(h: Headers | Record<string, string> | undefined): Headers {
+  if (!h) return new Headers();
+  if (h instanceof Headers) return h;
+  return new Headers(h as Record<string, string>);
+}
+
+/**
+ * XDK throws its own ApiError on non-2xx responses BEFORE honoring
+ * `requestOptions.raw`, so our shared handleResponse never sees the
+ * Response. This helper reshapes that ApiError back into the legacy
+ * `${operation} failed (HTTP N): detail. Rate limit: ...` format so
+ * MCP callers see identical error messages whether the flag is on or off.
+ */
+export function wrapXdkError(err: unknown, operation: string): Error {
+  const e = err as XdkApiError;
+  if (!e || typeof e !== "object" || e.name !== "ApiError") {
+    return err instanceof Error ? err : new Error(String(err));
+  }
+  const headers = headersFrom(e.headers);
+  const rl = parseRateLimit(headers);
+  const rateLimitStr = rl ? formatRateLimit(rl) : "";
+  const status = e.status ?? 0;
+
+  if (status === 429) {
+    const resetTime = rl ? new Date(rl.reset * 1000).toISOString() : "unknown";
+    return new Error(`Rate limited on ${operation}. Reset at: ${resetTime}. ${rateLimitStr}`);
+  }
+
+  const body = e.data as XApiErrorBody | undefined;
+  const detail = body?.errors?.map((x) => x.detail || x.message).join("; ") || e.message;
+  return new Error(`${operation} failed (HTTP ${status}): ${detail}. ${rateLimitStr}`);
+}
+
 export function parseRateLimit(headers: Headers): RateLimitInfo | null {
   const limit = headers.get("x-rate-limit-limit");
   const remaining = headers.get("x-rate-limit-remaining");

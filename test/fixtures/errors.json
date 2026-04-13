@@ -1,0 +1,68 @@
+{
+  "_meta": {
+    "note": "Error-path fixtures (429, 404, 401, empty). Hand-crafted from X API v2 error schemas."
+  },
+  "rateLimit429": {
+    "status": 429,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-rate-limit-limit": "300",
+      "x-rate-limit-remaining": "0",
+      "x-rate-limit-reset": "1775433600"
+    },
+    "body": {
+      "title": "Too Many Requests",
+      "detail": "Too Many Requests",
+      "type": "about:blank",
+      "status": 429
+    }
+  },
+  "notFound404": {
+    "status": 404,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-rate-limit-limit": "300",
+      "x-rate-limit-remaining": "295",
+      "x-rate-limit-reset": "1775433600"
+    },
+    "body": {
+      "errors": [
+        {
+          "value": "0000000000000000000",
+          "detail": "Could not find tweet with ids: [0000000000000000000].",
+          "title": "Not Found Error",
+          "resource_type": "tweet",
+          "parameter": "ids",
+          "resource_id": "0000000000000000000",
+          "type": "https://api.twitter.com/2/problems/resource-not-found"
+        }
+      ]
+    }
+  },
+  "unauthorized401": {
+    "status": 401,
+    "headers": {
+      "content-type": "application/json; charset=utf-8"
+    },
+    "body": {
+      "title": "Unauthorized",
+      "type": "about:blank",
+      "status": 401,
+      "detail": "Unauthorized"
+    }
+  },
+  "emptySearch": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-rate-limit-limit": "180",
+      "x-rate-limit-remaining": "178",
+      "x-rate-limit-reset": "1775433600"
+    },
+    "body": {
+      "meta": {
+        "result_count": 0
+      }
+    }
+  }
+}

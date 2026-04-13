@@ -1,0 +1,62 @@
+{
+  "_meta": {
+    "endpoint": "GET /2/tweets/search/recent",
+    "capturedAt": "2026-04-12T00:00:00.000Z",
+    "args": { "query": "solana", "maxResults": 10 }
+  },
+  "status": 200,
+  "headers": {
+    "content-type": "application/json; charset=utf-8",
+    "x-rate-limit-limit": "180",
+    "x-rate-limit-remaining": "179",
+    "x-rate-limit-reset": "1775433600"
+  },
+  "body": {
+    "data": [
+      {
+        "id": "1400000000000000001",
+        "text": "Fixture tweet about solana #1",
+        "author_id": "111",
+        "conversation_id": "1400000000000000001",
+        "created_at": "2026-04-10T01:00:00.000Z",
+        "lang": "en",
+        "public_metrics": {
+          "retweet_count": 1,
+          "reply_count": 0,
+          "like_count": 2,
+          "quote_count": 0,
+          "bookmark_count": 0,
+          "impression_count": 100
+        }
+      },
+      {
+        "id": "1400000000000000002",
+        "text": "Fixture tweet about solana #2",
+        "author_id": "222",
+        "conversation_id": "1400000000000000002",
+        "created_at": "2026-04-10T02:00:00.000Z",
+        "lang": "en",
+        "public_metrics": {
+          "retweet_count": 0,
+          "reply_count": 0,
+          "like_count": 1,
+          "quote_count": 0,
+          "bookmark_count": 0,
+          "impression_count": 50
+        }
+      }
+    ],
+    "includes": {
+      "users": [
+        { "id": "111", "name": "User One", "username": "user_one", "verified": false, "profile_image_url": "https://example.com/1.jpg" },
+        { "id": "222", "name": "User Two", "username": "user_two", "verified": false, "profile_image_url": "https://example.com/2.jpg" }
+      ]
+    },
+    "meta": {
+      "newest_id": "1400000000000000002",
+      "oldest_id": "1400000000000000001",
+      "result_count": 2,
+      "next_token": "b26v89c19zqg8o3fpds2z3z3d1xj9vhlozwyc17jxd3gx"
+    }
+  }
+}
