@@ -91,6 +91,20 @@ X_ACCESS_TOKEN=your_access_token
 X_ACCESS_TOKEN_SECRET=your_access_token_secret
 ```
 
+### OAuth 2.0 token storage
+
+Bookmark tools use OAuth 2.0 refresh tokens after you run `setup_oauth2`.
+On macOS, x-mcp stores those tokens in Keychain by default. File storage is
+available only as an explicit fallback:
+
+```bash
+X_MCP_TOKEN_STORE=file
+X_MCP_ALLOW_FILE_TOKEN_STORE=true
+```
+
+Use the `clear_oauth2_tokens` tool to remove local OAuth 2.0 tokens and force a
+fresh `setup_oauth2` authorization.
+
 ---
 
 ## Connect to Your Client

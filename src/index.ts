@@ -333,6 +333,20 @@ server.tool(
 );
 
 server.tool(
+  "clear_oauth2_tokens",
+  "Clear locally stored OAuth 2.0 tokens. Use this to log out or force a fresh setup_oauth2 authorization.",
+  {},
+  async () => {
+    try {
+      const message = client.getOAuth2Manager().clearTokens();
+      return { content: [{ type: "text", text: message }] };
+    } catch (e: unknown) {
+      return { content: [{ type: "text", text: `Error: ${(e as Error).message}` }], isError: true };
+    }
+  },
+);
+
+server.tool(
   "get_bookmarks",
   "Fetch the authenticated user's bookmarked posts. Returns tweets with author info and metrics.",
   {
