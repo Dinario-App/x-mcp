@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { execFile } from "child_process";
+import { execFile, execFileSync } from "child_process";
 import http from "http";
 import fs from "fs";
 import path from "path";
@@ -7,16 +7,21 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TOKEN_FILE = path.resolve(__dirname, "..", ".oauth2-tokens.json");
+const KEYCHAIN_SERVICE = "x-mcp.oauth2-tokens";
+const KEYCHAIN_ACCOUNT = "x-mcp";
 const AUTH_URL = "https://twitter.com/i/oauth2/authorize";
 const TOKEN_URL = "https://api.twitter.com/2/oauth2/token";
 const REDIRECT_URI = "http://127.0.0.1:3219/callback";
 const SCOPES = "bookmark.read bookmark.write tweet.read users.read offline.access";
+const FILE_STORE_ERROR = "File token storage is disabled by default. Set X_MCP_TOKEN_STORE=file and X_MCP_ALLOW_FILE_TOKEN_STORE=true to use .oauth2-tokens.json.";
 
 interface OAuth2Tokens {
   access_token: string;
   refresh_token: string;
   expires_at: number; // unix ms
 }
+
+type TokenStoreMode = "keychain" | "file";
 
 function isOAuth2Tokens(value: unknown): value is OAuth2Tokens {
   if (!value || typeof value !== "object") return false;
@@ -27,6 +32,16 @@ function isOAuth2Tokens(value: unknown): value is OAuth2Tokens {
     typeof candidate.expires_at === "number" &&
     Number.isFinite(candidate.expires_at)
   );
+}
+
+function getTokenStoreMode(): TokenStoreMode {
+  const configured = process.env.X_MCP_TOKEN_STORE?.trim().toLowerCase();
+  if (configured === "keychain" || configured === "file") return configured;
+  return process.platform === "darwin" ? "keychain" : "file";
+}
+
+function isFileStoreAllowed(): boolean {
+  return process.env.X_MCP_ALLOW_FILE_TOKEN_STORE === "true";
 }
 
 function openAuthUrl(authUrl: string) {
@@ -46,20 +61,80 @@ function openAuthUrl(authUrl: string) {
   });
 }
 
+function readKeychainTokens(): string | null {
+  if (process.platform !== "darwin") return null;
+  try {
+    return execFileSync("security", [
+      "find-generic-password",
+      "-a",
+      KEYCHAIN_ACCOUNT,
+      "-s",
+      KEYCHAIN_SERVICE,
+      "-w",
+    ], { encoding: "utf-8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+  } catch {
+    return null;
+  }
+}
+
+function writeKeychainTokens(tokens: string) {
+  if (process.platform !== "darwin") {
+    throw new Error("macOS Keychain token storage is only available on macOS. Set X_MCP_TOKEN_STORE=file and X_MCP_ALLOW_FILE_TOKEN_STORE=true to opt into file token storage.");
+  }
+  execFileSync("security", [
+    "add-generic-password",
+    "-a",
+    KEYCHAIN_ACCOUNT,
+    "-s",
+    KEYCHAIN_SERVICE,
+    "-w",
+    tokens,
+    "-U",
+  ], { stdio: ["ignore", "ignore", "pipe"] });
+}
+
+function deleteKeychainTokens() {
+  if (process.platform !== "darwin") return;
+  try {
+    execFileSync("security", [
+      "delete-generic-password",
+      "-a",
+      KEYCHAIN_ACCOUNT,
+      "-s",
+      KEYCHAIN_SERVICE,
+    ], { stdio: ["ignore", "ignore", "ignore"] });
+  } catch {
+    // Already deleted or never created.
+  }
+}
+
 export class OAuth2Manager {
   private tokens: OAuth2Tokens | null = null;
   private clientId: string;
   private clientSecret: string;
+  private tokenStore: TokenStoreMode;
 
   constructor(clientId: string, clientSecret: string) {
     this.clientId = clientId;
     this.clientSecret = clientSecret;
+    this.tokenStore = getTokenStoreMode();
     this.loadTokens();
   }
 
   private loadTokens() {
     try {
-      if (fs.existsSync(TOKEN_FILE)) {
+      if (this.tokenStore === "keychain") {
+        const raw = readKeychainTokens();
+        if (!raw) return;
+        const parsed = JSON.parse(raw) as unknown;
+        this.tokens = isOAuth2Tokens(parsed) ? parsed : null;
+        return;
+      }
+
+      if (this.tokenStore === "file" && fs.existsSync(TOKEN_FILE)) {
+        if (!isFileStoreAllowed()) {
+          throw new Error(FILE_STORE_ERROR);
+        }
         const raw = fs.readFileSync(TOKEN_FILE, "utf-8");
         const parsed = JSON.parse(raw) as unknown;
         this.tokens = isOAuth2Tokens(parsed) ? parsed : null;
@@ -71,12 +146,32 @@ export class OAuth2Manager {
 
   private saveTokens(tokens: OAuth2Tokens) {
     this.tokens = tokens;
+    if (this.tokenStore === "keychain") {
+      writeKeychainTokens(JSON.stringify(tokens));
+      return;
+    }
+
+    if (!isFileStoreAllowed()) {
+      throw new Error(FILE_STORE_ERROR);
+    }
+
     fs.writeFileSync(TOKEN_FILE, JSON.stringify(tokens, null, 2), { mode: 0o600 });
     fs.chmodSync(TOKEN_FILE, 0o600);
   }
 
   get isAuthorized(): boolean {
     return this.tokens !== null;
+  }
+
+  clearTokens(): string {
+    this.tokens = null;
+    deleteKeychainTokens();
+    try {
+      fs.unlinkSync(TOKEN_FILE);
+    } catch {
+      // Already deleted or never created.
+    }
+    return "OAuth 2.0 tokens cleared.";
   }
 
   async getAccessToken(): Promise<string> {
@@ -116,8 +211,7 @@ export class OAuth2Manager {
 
     if (!response.ok) {
       const text = await response.text();
-      this.tokens = null;
-      try { fs.unlinkSync(TOKEN_FILE); } catch {}
+      this.clearTokens();
       throw new Error(
         `OAuth 2.0 token refresh failed (HTTP ${response.status}): ${text}. Re-run 'setup_oauth2'.`,
       );
