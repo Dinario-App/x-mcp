@@ -4,6 +4,10 @@ import { OAuth2Manager } from "./oauth2.js";
 
 const API_BASE = "https://api.x.com/2";
 const UPLOAD_BASE = "https://upload.twitter.com/1.1";
+const ALLOWED_FETCH_ORIGINS = new Set([
+  new URL(API_BASE).origin,
+  new URL(UPLOAD_BASE).origin,
+]);
 
 interface RateLimitInfo {
   limit: number;
@@ -64,6 +68,7 @@ export class XApiClient {
     method: string,
     body?: unknown,
   ): Promise<Response> {
+    const safeUrl = this.requireAllowedFetchUrl(url);
     const accessToken = await this.oauth2.getAccessToken();
     const headers: Record<string, string> = {
       Authorization: `Bearer ${accessToken}`,
@@ -75,7 +80,7 @@ export class XApiClient {
     if (body) {
       init.body = JSON.stringify(body);
     }
-    return fetch(url, init);
+    return fetch(safeUrl, init);
   }
 
   // --- Internal helpers ---
@@ -106,6 +111,7 @@ export class XApiClient {
     body?: unknown,
     contentType?: string,
   ): Promise<Response> {
+    const safeUrl = this.requireAllowedFetchUrl(url);
     // For form-urlencoded bodies, include params in OAuth signature per spec.
     // JSON and multipart (FormData) bodies are excluded from the signature.
     const isFormEncoded = contentType === "application/x-www-form-urlencoded";
@@ -114,7 +120,7 @@ export class XApiClient {
       : undefined;
 
     const headers: Record<string, string> = {
-      ...this.getOAuthHeaders(url, method, signatureData),
+      ...this.getOAuthHeaders(safeUrl, method, signatureData),
     };
     if (contentType) {
       headers["Content-Type"] = contentType;
@@ -133,16 +139,25 @@ export class XApiClient {
       }
     }
 
-    return fetch(url, init);
+    return fetch(safeUrl, init);
   }
 
   private async bearerFetch(url: string): Promise<Response> {
-    return fetch(url, {
+    const safeUrl = this.requireAllowedFetchUrl(url);
+    return fetch(safeUrl, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${this.bearerToken}`,
       },
     });
+  }
+
+  private requireAllowedFetchUrl(url: string): string {
+    const parsed = new URL(url);
+    if (!ALLOWED_FETCH_ORIGINS.has(parsed.origin)) {
+      throw new Error(`Blocked outbound request to unexpected origin: ${parsed.origin}`);
+    }
+    return parsed.toString();
   }
 
   private async handleResponse<T>(response: Response, operation: string): Promise<{ result: T; rateLimit: string }> {
