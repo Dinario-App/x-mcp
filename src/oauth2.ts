@@ -39,7 +39,11 @@ function openAuthUrl(authUrl: string) {
     ? ["/c", "start", "", authUrl]
     : [authUrl];
 
-  execFile(command, args, { windowsHide: true }, () => {});
+  execFile(command, args, { windowsHide: true }, (err) => {
+    if (err) {
+      console.error(`Failed to open browser automatically. Open this URL manually: ${authUrl}`);
+    }
+  });
 }
 
 export class OAuth2Manager {
@@ -68,6 +72,7 @@ export class OAuth2Manager {
   private saveTokens(tokens: OAuth2Tokens) {
     this.tokens = tokens;
     fs.writeFileSync(TOKEN_FILE, JSON.stringify(tokens, null, 2), { mode: 0o600 });
+    fs.chmodSync(TOKEN_FILE, 0o600);
   }
 
   get isAuthorized(): boolean {
