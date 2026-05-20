@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { exec } from "child_process";
+import { execFile } from "child_process";
 import http from "http";
 import fs from "fs";
 import path from "path";
@@ -18,6 +18,30 @@ interface OAuth2Tokens {
   expires_at: number; // unix ms
 }
 
+function isOAuth2Tokens(value: unknown): value is OAuth2Tokens {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<OAuth2Tokens>;
+  return (
+    typeof candidate.access_token === "string" &&
+    typeof candidate.refresh_token === "string" &&
+    typeof candidate.expires_at === "number" &&
+    Number.isFinite(candidate.expires_at)
+  );
+}
+
+function openAuthUrl(authUrl: string) {
+  const command = process.platform === "darwin"
+    ? "open"
+    : process.platform === "win32"
+      ? "cmd"
+      : "xdg-open";
+  const args = process.platform === "win32"
+    ? ["/c", "start", "", authUrl]
+    : [authUrl];
+
+  execFile(command, args, { windowsHide: true }, () => {});
+}
+
 export class OAuth2Manager {
   private tokens: OAuth2Tokens | null = null;
   private clientId: string;
@@ -33,7 +57,8 @@ export class OAuth2Manager {
     try {
       if (fs.existsSync(TOKEN_FILE)) {
         const raw = fs.readFileSync(TOKEN_FILE, "utf-8");
-        this.tokens = JSON.parse(raw);
+        const parsed = JSON.parse(raw) as unknown;
+        this.tokens = isOAuth2Tokens(parsed) ? parsed : null;
       }
     } catch {
       this.tokens = null;
@@ -42,7 +67,7 @@ export class OAuth2Manager {
 
   private saveTokens(tokens: OAuth2Tokens) {
     this.tokens = tokens;
-    fs.writeFileSync(TOKEN_FILE, JSON.stringify(tokens, null, 2));
+    fs.writeFileSync(TOKEN_FILE, JSON.stringify(tokens, null, 2), { mode: 0o600 });
   }
 
   get isAuthorized(): boolean {
@@ -202,12 +227,7 @@ export class OAuth2Manager {
       });
 
       server.listen(3219, "127.0.0.1", () => {
-        const cmd = process.platform === "darwin"
-          ? `open "${authUrl}"`
-          : process.platform === "win32"
-            ? `start "${authUrl}"`
-            : `xdg-open "${authUrl}"`;
-        exec(cmd);
+        openAuthUrl(authUrl);
       });
 
       // Timeout after 2 minutes
